@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const { response } = require('express');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -45,4 +46,27 @@ app.get('/location', (req, res) =>{
 
 app.listen(PORT, () =>{
     console.log(`server is listening to port ${PORT}`)
+})
+
+newArr = [];
+
+function Weather (forecast, time){
+    this.forecast = forecast;
+    this.time = time;
+    newArr.push(this);
+
+}
+
+
+app.get('/weather.json', (req, res) =>{
+    
+    let weatherObj = require('./data/weather.json');
+    let dataArray = weatherObj.data;
+    dataArray.forEach( section =>{
+        let newWeather = new Weather(section.weather.description, section.valid_date);
+    });
+    
+    response.send(newArr);
+
+
 })
