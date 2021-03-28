@@ -15,5 +15,8 @@
   "bugs": {
     "url": "https://github.com/moh-ash96/city_explorer_api/issues"
   },
-  "homepage": "https://github.com/moh-ash96/city_explorer_api#readme"
+  "homepage": "https://github.com/moh-ash96/city_explorer_api#readme",
+  "dependencies": {
+    "express": "^4.17.1"
+  }
 }
