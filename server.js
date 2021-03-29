@@ -36,7 +36,7 @@ const locations = {};
 function handleLocation(req, res) {
   let city = req.query.city; // assign the value found in the city query parameter to search
   let key = process.env.GEOCODE_API_KEY;
-  const url = `https://eu1.locationiq.com/v1/search.php?key=${key}&q=${city}&format=json`;
+  const url = `https://eu1.locationiq.com/v1/search.php?key=${key}&q=${city}&format=json&limit=1`;
  
   if (locations[url]){
     res.send(locations[url]);
@@ -59,7 +59,7 @@ function handleLocation(req, res) {
 
 
 function Weather(city, forecast, time) {
-  this.search_query = search;
+  this.search_query = city;
   this.forecast = forecast;
   this.time = time;
 }
