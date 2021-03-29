@@ -67,5 +67,9 @@ function handleWeather(req, res) {
   }
 }
 function handleErrors(req,res) {
-  res.status(500).send("This page doesn't exist");
+  res.status(500).send({
+    status: 500,
+    responseText: "Sorry, something went wrong",
+    
+  });
 }
