@@ -66,6 +66,6 @@ function handleWeather(req, res) {
     res.status(500).send("Something Went Wrong");
   }
 }
-function handleErrors() {
-  res.status(500).send(`Something Went Wrong ${error}`);
+function handleErrors(req,res) {
+  res.status(500).send({status: 500, responseText:`This page doesn't exist`});
 }
