@@ -1,5 +1,6 @@
 "use strict";
 
+const superagent = require('superagent');
 const dotenv = require("dotenv"); //dotenv allows us to load environment variables from a .env file
 dotenv.config();
 const PORT = process.env.PORT || 3001; // get the port from the environment
@@ -18,38 +19,53 @@ app.get("/weather", handleWeather); // handle GET calls to the /weather path usi
 
 app.get("*", handleErrors); // handle any other route using handleErrors route handler
 
+
 app.listen(PORT, () => {
   console.log(`server is listening to port ${PORT}`);
 });
 
-function Locations(search, format, lat, lon) {
-  this.search_query = search;
-  this.formatted_query = format;
-  this.latitude = lat;
-  this.longitude = lon;
+function Locations(city, geoData) {
+  this.search_query = city;
+  this.formatted_query = geoData.display_name;
+  this.latitude = geoData.lat;
+  this.longitude = geoData.lon;
 }
+
+const locations = {};
 
 function handleLocation(req, res) {
-  let search = req.query.city; // assign the value found in the city query parameter to search
+  let city = req.query.city; // assign the value found in the city query parameter to search
+  let key = process.env.GEOCODE_API_KEY;
+  const url = `https://eu1.locationiq.com/v1/search.php?key=${key}&q=${city}&format=json`;
+ 
+  if (locations[url]){
+    res.send(locations[url]);
+  }else{
+    superagent.get(url)
+    .then(data =>{
+      // const location = require("./data/location.json"); // creates location variable and loads the content of the location.json
+      
+      const geoData = data.body[0]; // gets the first object in the obj array
+      let location = new Locations(city, geoData); // declare a variable called newLocation and assign to it new Location instatnce
+      locations[url] = location;
+      res.status(200).send(location);
+    }) 
+    .catch (() =>{
+      res.status(404).send("Something Went Wrong");
 
-  try {
-    const location = require("./data/location.json"); // creates location variable and loads the content of the location.json
-    let obj = location[0]; // gets the first object in the obj array
-    let newLocation = new Locations(search, obj.display_name, obj.lat, obj.lon); // declare a variable called newLocation and assign to it new Location instatnce
-    res.status(200).send(newLocation);
-  } catch {
-    res.status(404).send("Something Went Wrong");
+    })
+    }
   }
-}
 
-function Weather(search, forecast, time) {
+
+function Weather(city, forecast, time) {
   this.search_query = search;
   this.forecast = forecast;
   this.time = time;
 }
 
 function handleWeather(req, res) {
-  let search = req.query.city;
+  let city = req.query.city;
   let weatherObj = require("./data/weather.json");
   let newArr = [];
   let dataArray = weatherObj.data;
@@ -64,7 +80,7 @@ function handleWeather(req, res) {
     rObj[obj.key] = obj.value
       let description = obj.weather["description"];
       let dates = obj.datetime;
-      let newWeather = new Weather(search, description, dates);
+      let newWeather = new Weather(city, description, dates);
       newArr.push(newWeather);
 })
 
