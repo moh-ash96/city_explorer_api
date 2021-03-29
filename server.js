@@ -2,7 +2,7 @@
 
 const dotenv = require("dotenv"); //dotenv allows us to load environment variables from a .env file
 dotenv.config();
-const PORT = process.env.PORT || 3000; // get the port from the environment
+const PORT = process.env.PORT || 3001; // get the port from the environment
 
 const express = require("express"); // load express module, used to create a web server
 const app = express(); // create an express application which we'll use as our web server
@@ -53,12 +53,20 @@ function handleWeather(req, res) {
   let weatherObj = require("./data/weather.json");
   let newArr = [];
   let dataArray = weatherObj.data;
-  dataArray.forEach((section) => {
-    let description = section.weather["description"];
-    let dates = section.datetime;
-    let newWeather = new Weather(search, description, dates);
-    newArr.push(newWeather);
-  });
+  // dataArray.forEach((section) => {
+  //   let description = section.weather["description"];
+  //   let dates = section.datetime;
+  //   let newWeather = new Weather(search, description, dates);
+  //   newArr.push(newWeather);
+  // });
+  let reformattedArray = dataArray.map(obj => {
+    let rObj = {}
+    rObj[obj.key] = obj.value
+      let description = obj.weather["description"];
+      let dates = obj.datetime;
+      let newWeather = new Weather(search, description, dates);
+      newArr.push(newWeather);
+})
 
   try {
     res.status(200).send(newArr);
@@ -72,4 +80,4 @@ function handleErrors(req,res) {
     responseText: "Sorry, something went wrong",
     
   });
-}
+};
