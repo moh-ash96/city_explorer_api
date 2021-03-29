@@ -35,30 +35,32 @@ function Locations(search, format, lat, lon){
 
 function handleLocation (req, res){
     let search = req.query.city // assign the value found in the city query parameter to search
-    const location = require('./data/location.json'); // creates location variable and loads the content of the location.json
-    let obj = location[0]; // gets the first object in the obj array 
-    let newLocation = new Locations(search, obj.display_name, obj.lat, obj.lon); // declare a variable called newLocation and assign to it new Location instatnce
-    let foundLocation = null;
-    location.forEach(place =>{
-        if (location.display_name === req.query.name){
-            foundLocation = place;
-        }
-    });
-    if (foundLocation){
+    
+    try {
+        const location = require('./data/location.json'); // creates location variable and loads the content of the location.json
+        let obj = location[0]; // gets the first object in the obj array 
+        let newLocation = new Locations(search, obj.display_name, obj.lat, obj.lon); // declare a variable called newLocation and assign to it new Location instatnce
+        // let foundLocation = null;
+        // location.forEach(place =>{
+        //     if (location.display_name === req.query.name){
+        //         foundLocation = place;
+        //     }
+        // });
         res.status(200).send(newLocation);
-    } else{
-        res.status(404).send('Somwthing Went Wrong');
+    }
+    
+    catch{
+        res.status(404).send('Something Went Wrong');
     }
 }
 
 
-let newArr = [];
 
 function Weather (search, forecast, time){
     this.search_query = search;
     this.forecast = forecast;
     this.time = time;
-    newArr.push(this);
+    // newArr.push(this);
     
 }
 
@@ -66,24 +68,33 @@ function Weather (search, forecast, time){
 function handleWeather (req, res){
     let search = req.query.city;
     let weatherObj = require('./data/weather.json');
+    let newArr = [];
     let dataArray = weatherObj.data;
     dataArray.forEach( section =>{
-        let newWeather = new Weather(search, section.weather.description, section.valid_date);
+        let description = section.weather['description'];
+        let dates = section.datetime
+        let newWeather = new Weather(search, description, dates);
         newArr.push(newWeather)
     });
     
-    let foundWeather = null;
-    dataArray.forEach(place =>{
-        if (dataArray.city_name === req.query.name){
-            foundWeather = place;
+    // let foundWeather = null;
+    // dataArray.forEach(place =>{
+    //     if (dataArray.city_name === req.query.name){
+    //         foundWeather = place;
+    //     }
+    // });
+    // if(foundWeather){
+        try{
+            // newArr;
+
+            res.status(200).send(newArr);
         }
-    });
-    if(foundWeather){
-        
-        response.status(200).send(newArr);
-    } else{
-        res.status(500).send('Something Went Wrong');
-    }
+    // } else{
+        catch{
+
+            res.status(500).send('Something Went Wrong');
+        }
+    // }
 }
 
 function handleErrors(){
