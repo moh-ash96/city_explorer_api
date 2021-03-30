@@ -6,16 +6,18 @@ dotenv.config();
 const express = require("express"); // load express module, used to create a web server
 const superagent = require('superagent');
 const cors = require("cors"); // load the cors library, it allows our server to accept APIs calls from other domains
+const pg = require('pg');
 
-// const { response } = require("express");
-
-// setup application
 const app = express(); // create an express application which we'll use as our web server
+app.use(cors());
+const DATABASE_URL = process.env.DATABASE_URL;
 
 const PORT = process.env.PORT || 3001; // get the port from the environment
 
+// dataBase connection setup
+const client = new pg.Client(DATABASE_URL);
+client.on('error', err=>{throw err;});
 
-app.use(cors());
 
 
 app.get("/location", handleLocation); // handle GET calls to the /location path using handleLocation route handler
@@ -130,6 +132,13 @@ async function handlePark(req, res){
     res.status(500).send("Something Went Wrong");
   }
 }
+
+// it will only start our webserver if we can successfully cnnect to database 
+// client.connect().then(()=>{
+//   app.listen(PORT, ()=> {
+//     console.log(`App listening on port ${PORT}`);
+//   })
+// })
 
 
 function handleErrors(req, res) {
