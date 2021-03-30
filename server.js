@@ -20,8 +20,8 @@ app.use(cors());
 
 app.get("/location", handleLocation); // handle GET calls to the /location path using handleLocation route handler
 app.get("/weather", handleWeather); // handle GET calls to the /weather path using handleWeather route handler
+app.get("/parks", handlePark);
 app.use("*", handleErrors); // handle any other route using handleErrors route handler
-
 
 app.listen(PORT, () => {
   console.log(`server is listening to port ${PORT}`);
@@ -66,9 +66,9 @@ function handleLocation(req, res) {
 }
 
 
-function Weather(forecast, valid_date) {
+function Weather(forecast, datetime) {
   this.forecast = forecast;
-  this.valid_date = valid_date;
+  this.time = datetime;
 }
 const weatherInfo = [];
 
@@ -77,6 +77,7 @@ async function handleWeather(req, res) {
     let key = process.env.WEATHER_API_KEY;
     let lat = req.query.latitude;
     let lon = req.query.longitude;
+    
     const url = `https://api.weatherbit.io/v2.0/forecast/daily?lat=${lat}&lon=${lon}&key=${key}`
     const rawWeatherData = await superagent.get(url);
 
@@ -84,10 +85,10 @@ async function handleWeather(req, res) {
 
     let reformattedArray = dataArray.map(obj => {
       let description = obj.weather.description;
-      let dates = obj.valid_date;
+      let dates = obj.datetime;
       return new Weather(description, dates);
     })
-    res.json(reformattedArray);
+    res.send(reformattedArray);
   }
   catch (error) {
 
@@ -95,6 +96,40 @@ async function handleWeather(req, res) {
   }
 }
 
+function Park(name, address, fee, description, url){
+  this.name = name;
+  this.address = address;
+  this.fee = fee;
+  this.description = description;
+  this.url = url;
+}
+
+async function handlePark(req, res){
+  try{
+    const key = process.env.PARKS_API_KEY;
+    let lat = req.query.latitude;
+    let lon = req.query.longitude;
+    const url =`https://developer.nps.gov/api/v1/parks?lat=${lat}&lon=${lon}&parkCode=acad&api_key=${key}`
+    let parkData = await superagent.get(url);
+    let dataArray = parkData.body.data;
+    let reformattedArray = dataArray.map(obj => {
+      let name = obj.fullName;
+      let addressArr = Object.values(obj.addresses[0]);
+      let address = addressArr.toString();
+      console.log(address);
+      let feeObj = obj.entranceFees[0];
+      let fee = feeObj[Object.keys(feeObj)[0]];
+      let description = obj.description;
+      let url = obj.url;
+      return new Park(name, address, fee, description, url);
+    })
+    res.json(reformattedArray);
+
+  }catch (error) {
+
+    res.status(500).send("Something Went Wrong");
+  }
+}
 
 
 function handleErrors(req, res) {
