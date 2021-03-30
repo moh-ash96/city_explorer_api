@@ -4,7 +4,10 @@
   "description": "**Author**: Mohammad Ashour **Version**: 1.0.0",
   "main": "server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js",
+    "stop-win": "Taskkill /IM node.exe /F",
+    "stop-linux": "killall node"
   },
   "repository": {
     "type": "git",
@@ -19,7 +22,8 @@
   "dependencies": {
     "cors": "^2.8.5",
     "dotenv": "^8.2.0",
-    "express": "^4.17.1"
+    "express": "^4.17.1",
+    "superagent": "^6.1.0"
   },
   "devDependencies": {
     "nodemon": "^2.0.7"
