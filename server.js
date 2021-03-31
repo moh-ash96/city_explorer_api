@@ -39,6 +39,7 @@ client.connect().then(() => {
 app.get("/location", handleLocation); // handle GET calls to the /location path using handleLocation route handler
 app.get("/weather", handleWeather); // handle GET calls to the /weather path using handleWeather route handler
 app.get("/parks", handlePark);
+app.get("/movies", handleMovies);
 app.use("*", handleErrors); // handle any other route using handleErrors route handler
 
 
@@ -158,7 +159,35 @@ async function handlePark(req, res) {
   }
 }
 
+function Movies(title, overview, average_votes, total_votes, image_url, popularity, released_on){
+  this.title= title;
+  this.overview= overview;
+  this.average_votes= average_votes;
+  this.total_votes= total_votes;
+  this.image_url= image_url;
+  this.popularity= popularity;
+  this.released_on= released_on;
+};
 
+async function handleMovies(req, res){
+
+  let city = req.query.city;
+  try{
+    const key = process.env.MOVIE_API_KEY;
+    const url = `https://api.themoviedb.org/3/movie/76341?city=${city}&api_key=${key}`;
+    let movieData = await superagent.get(url);
+    console.log(movieData);
+    const movieArr = [movieData.body];
+    let newMovie = movieArr.map(obj=>{
+      return new Movies(obj.title, obj.overview, obj.vote_average, obj.vote_count, obj.belongs_to_collection.poster_path, obj.popularity, obj.release_date);
+    })
+    res.send(newMovie);
+
+  }catch(error) {
+
+    res.status(500).send("Something Went Wrong");
+  }
+}
 
 
 function handleErrors(req, res) {
