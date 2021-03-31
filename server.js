@@ -7,16 +7,32 @@ const express = require("express"); // load express module, used to create a web
 const superagent = require('superagent');
 const cors = require("cors"); // load the cors library, it allows our server to accept APIs calls from other domains
 const pg = require('pg');
+const NODE_ENV = process.env.NODE_ENV;
+
 
 const app = express(); // create an express application which we'll use as our web server
 app.use(cors());
 const DATABASE_URL = process.env.DATABASE_URL;
 
-const PORT = process.env.PORT || 3001; // get the port from the environment
+const PORT = process.env.PORT || 3030; // get the port from the environment
 
+const options = NODE_ENV === 'production' ? { connectionString: DATABASE_URL, ssl: { rejectUnauthorized: false } } : { connectionString: DATABASE_URL };
 // dataBase connection setup
 const client = new pg.Client(DATABASE_URL);
-client.on('error', err=>{throw err;});
+client.on('error', err => { throw err; });
+
+app.get('/', (request, response) => {
+  response.status(200).send('ok');
+});
+
+// it will only start our webserver if we can successfully cnnect to database 
+client.connect().then(() => {
+  app.listen(PORT, () => {
+    console.log(`App listening on port ${PORT}`);
+  })
+}).catch(err => {
+  console.log('ERROR', err);
+});
 
 
 
@@ -25,46 +41,65 @@ app.get("/weather", handleWeather); // handle GET calls to the /weather path usi
 app.get("/parks", handlePark);
 app.use("*", handleErrors); // handle any other route using handleErrors route handler
 
-app.listen(PORT, () => {
-  console.log(`server is listening to port ${PORT}`);
-});
 
 
 
 
 
-function Locations(city, geoData) {
+function Locations(city, formatted_query, latitude, longitude) {
   this.search_query = city;
-  this.formatted_query = geoData.display_name;
-  this.latitude = geoData.lat;
-  this.longitude = geoData.lon;
+  this.formatted_query = formatted_query;
+  this.latitude = latitude;
+  this.longitude = longitude;
 }
 
 const locations = {};
 
 function handleLocation(req, res) {
-  let city = req.query.city; // assign the value found in the city query parameter to search
-  let key = process.env.GEOCODE_API_KEY;
-  const url = `https://eu1.locationiq.com/v1/search.php?key=${key}&q=${city}&format=json&limit=1`;
+  const city = req.query.city; // assign the value found in the city query parameter to search
+  const key = process.env.GEOCODE_API_KEY;
+  const sql = "SELECT * FROM locations WHERE search_query = $1";
+  // const sqlArray = [city];
+  // console.log();
+  client.query(sql, [city])
+    .then((data) => {
+      // console.log(data);
+      if (data.rowCount === 0) {
+        const url = `https://eu1.locationiq.com/v1/search.php?key=${key}&q=${city}&format=json&limit=1`;
+        superagent.get(url)
+          .then(data => {
+            // const location = require("./data/location.json"); // creates location variable and loads the content of the location.json
+            const geoData = data.body[0]; // gets the first object in the obj array
+            let location = new Locations(city, geoData.display_name, geoData.lat, geoData.lon); // declare a variable called newLocation and assign to it new Location instatnce
+            const sql = 'INSERT INTO locations (search_query, formatted_query, latitude, longitude) VALUES ($1, $2, $3, $4);';
+            const cleanValues = [city, location.formatted_query, location.latitude, location.longitude];
+            // const cleanValues = [location.city, location.geoData];
 
-  if (locations[url]) {
-    res.send(locations[url]);
-    // console.log(locations[url]);
-  } else {
-    superagent.get(url)
-      .then(data => {
-        // const location = require("./data/location.json"); // creates location variable and loads the content of the location.json
-        const geoData = data.body[0]; // gets the first object in the obj array
-        let location = new Locations(city, geoData); // declare a variable called newLocation and assign to it new Location instatnce
-        locations[url] = location;
-        res.status(200).send(location);
-        // console.log(location);
-      })
-      .catch(() => {
-        res.status(404).send("Something Went Wrong");
+            client.query(sql, cleanValues)
+              .then((data) => {
+                console.log('adding');
+                res.json(data.rows[0]);
+              });
+            // locations[url] = location;
+            // res.status(200).send(location);
+            // console.log(location);
+          })
 
-      })
-  }
+      } else {
+        res.send(data.rows[0]);
+        console.log('added');
+        
+      }
+    })
+
+    // if (locations[url]) {
+    //   res.send(locations[url]);
+    // } else {
+    .catch(() => {
+      res.status(404).send("Something Went Wrong");
+      console.log(search_query);
+    })
+  // }
 }
 
 
@@ -79,7 +114,7 @@ async function handleWeather(req, res) {
     let key = process.env.WEATHER_API_KEY;
     let lat = req.query.latitude;
     let lon = req.query.longitude;
-    
+
     const url = `https://api.weatherbit.io/v2.0/forecast/daily?lat=${lat}&lon=${lon}&key=${key}`
     const rawWeatherData = await superagent.get(url);
 
@@ -98,7 +133,7 @@ async function handleWeather(req, res) {
   }
 }
 
-function Park(name, address, fee, description, url){
+function Park(name, address, fee, description, url) {
   this.name = name;
   this.address = address;
   this.fee = fee;
@@ -106,19 +141,18 @@ function Park(name, address, fee, description, url){
   this.url = url;
 }
 
-async function handlePark(req, res){
-  try{
+async function handlePark(req, res) {
+  try {
     const key = process.env.PARKS_API_KEY;
     let lat = req.query.latitude;
     let lon = req.query.longitude;
-    const url =`https://developer.nps.gov/api/v1/parks?lat=${lat}&lon=${lon}&parkCode=acad&api_key=${key}`
+    const url = `https://developer.nps.gov/api/v1/parks?lat=${lat}&lon=${lon}&parkCode=acad&api_key=${key}`
     let parkData = await superagent.get(url);
     let dataArray = parkData.body.data;
     let reformattedArray = dataArray.map(obj => {
       let name = obj.fullName;
       let addressArr = Object.values(obj.addresses[0]);
       let address = addressArr.toString();
-      console.log(address);
       let feeObj = obj.entranceFees[0];
       let fee = feeObj[Object.keys(feeObj)[0]];
       let description = obj.description;
@@ -127,18 +161,13 @@ async function handlePark(req, res){
     })
     res.json(reformattedArray);
 
-  }catch (error) {
+  } catch (error) {
 
     res.status(500).send("Something Went Wrong");
   }
 }
 
-// it will only start our webserver if we can successfully cnnect to database 
-// client.connect().then(()=>{
-//   app.listen(PORT, ()=> {
-//     console.log(`App listening on port ${PORT}`);
-//   })
-// })
+
 
 
 function handleErrors(req, res) {
