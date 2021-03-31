@@ -65,24 +65,20 @@ function handleLocation(req, res) {
     .then((data) => {
       // console.log(data);
       if (data.rowCount === 0) {
+        // creates url variable and loads the content of the url
         const url = `https://eu1.locationiq.com/v1/search.php?key=${key}&q=${city}&format=json&limit=1`;
         superagent.get(url)
           .then(data => {
-            // const location = require("./data/location.json"); // creates location variable and loads the content of the location.json
             const geoData = data.body[0]; // gets the first object in the obj array
             let location = new Locations(city, geoData.display_name, geoData.lat, geoData.lon); // declare a variable called newLocation and assign to it new Location instatnce
             const sql = 'INSERT INTO locations (search_query, formatted_query, latitude, longitude) VALUES ($1, $2, $3, $4);';
             const cleanValues = [city, location.formatted_query, location.latitude, location.longitude];
-            // const cleanValues = [location.city, location.geoData];
 
             client.query(sql, cleanValues)
               .then((data) => {
                 console.log('adding');
                 res.json(data.rows[0]);
               });
-            // locations[url] = location;
-            // res.status(200).send(location);
-            // console.log(location);
           })
 
       } else {
@@ -91,15 +87,10 @@ function handleLocation(req, res) {
         
       }
     })
-
-    // if (locations[url]) {
-    //   res.send(locations[url]);
-    // } else {
     .catch(() => {
       res.status(404).send("Something Went Wrong");
       console.log(search_query);
     })
-  // }
 }
 
 
