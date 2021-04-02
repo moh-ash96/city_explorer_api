@@ -198,19 +198,30 @@ function Restaurant (data){
   this.url= data.url;
 };
 const YELP_API_KEY = process.env.YELP_API_KEY;
-
+let num = 5;  
+let num2 = 0;
 function handleYelp(req, res) {
+  let restArray = [];
   const city = req.query.search_query;
   const url ='https://api.yelp.com/v3/businesses/search';
-  
   const queryParams = {
     location: city,
     term: 'restaurants'
   }
   superagent.get(url, queryParams).set('Authorization', `Bearer ${YELP_API_KEY}`).then(dataFromAPI => {
-    const restaurants = dataFromAPI.body.businesses.map(data => new Restaurant(data));
-    console.log('it works');
-    res.send(restaurants);
+    const restaurants = dataFromAPI.body.businesses.map((data, index) =>{
+      if (index< num && index >= num2){
+       return new Restaurant(data)
+      }
+    });
+    restaurants.forEach(element => {
+      if(element !== undefined){
+        restArray.push(element)
+      }
+      });;
+    num +=5;
+    num2 +=5;
+    res.send(restArray);
   }).catch((error) => {
     res.status(404).send("Something Went Wrong");
     console.log(error);
