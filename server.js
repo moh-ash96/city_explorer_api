@@ -211,9 +211,9 @@ function handleYelp(req, res) {
     const restaurants = dataFromAPI.body.businesses.map(data => new Restaurant(data));
     console.log('it works');
     res.send(restaurants);
-  }).catch(() => {
+  }).catch((error) => {
     res.status(404).send("Something Went Wrong");
-    // console.log(search_query);
+    console.log(error);
   });
   
 }
