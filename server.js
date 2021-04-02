@@ -18,7 +18,7 @@ const PORT = process.env.PORT || 3030; // get the port from the environment
 
 const options = NODE_ENV === 'production' ? { connectionString: DATABASE_URL, ssl: { rejectUnauthorized: false } } : { connectionString: DATABASE_URL };
 // dataBase connection setup
-const client = new pg.Client(DATABASE_URL);
+const client = new pg.Client(options);
 client.on('error', err => { throw err; });
 
 app.get('/', (request, response) => {
@@ -40,6 +40,7 @@ app.get("/location", handleLocation); // handle GET calls to the /location path 
 app.get("/weather", handleWeather); // handle GET calls to the /weather path using handleWeather route handler
 app.get("/parks", handlePark);
 app.get("/movies", handleMovies);
+app.get("/yelp", handleYelp);
 app.use("*", handleErrors); // handle any other route using handleErrors route handler
 
 
@@ -176,7 +177,7 @@ async function handleMovies(req, res){
     const key = process.env.MOVIE_API_KEY;
     const url = `https://api.themoviedb.org/3/movie/76341?city=${city}&api_key=${key}`;
     let movieData = await superagent.get(url);
-    console.log(movieData);
+    // TODO : remove the array after making sure you are working well
     const movieArr = [movieData.body];
     let newMovie = movieArr.map(obj=>{
       return new Movies(obj.title, obj.overview, obj.vote_average, obj.vote_count, obj.belongs_to_collection.poster_path, obj.popularity, obj.release_date);
@@ -189,7 +190,33 @@ async function handleMovies(req, res){
   }
 }
 
+function Restaurant (data){
+  this.name= data.name;
+  this.image_url= data.image_url;
+  this.price= data.price;
+  this.rating= data.rating;
+  this.url= data.url;
+};
+const YELP_API_KEY = process.env.YELP_API_KEY;
 
+function handleYelp(req, res) {
+  const city = req.query.search_query;
+  const url ='https://api.yelp.com/v3/businesses/search';
+  
+  const queryParams = {
+    location: city,
+    term: 'restaurants'
+  }
+  superagent.get(url, queryParams).set('Authorization', `Bearer ${YELP_API_KEY}`).then(dataFromAPI => {
+    const restaurants = dataFromAPI.body.businesses.map(data => new Restaurant(data));
+    console.log('it works');
+    res.send(restaurants);
+  }).catch(() => {
+    res.status(404).send("Something Went Wrong");
+    // console.log(search_query);
+  });
+  
+}
 function handleErrors(req, res) {
   res.status(404).send({
     status: 500,
